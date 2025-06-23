@@ -146,6 +146,7 @@ jobs:
       run: |
         echo "Performance profiling results:"
         time ./main_debug
+
   code-quality:
     runs-on: ubuntu-latest
     
@@ -170,52 +171,15 @@ jobs:
         
     - name: Generate code coverage report
       run: |
-        echo "Checking GCC and gcov versions..."
-        gcc --version
-        gcov --version
-        
-        echo "Cleaning previous coverage files..."
-        rm -f *.gcda *.gcno *.gcov
-        
         echo "Generating code coverage report..."
-        # Compile with coverage flags
         gcc -fprofile-arcs -ftest-coverage -o main_coverage main.c
-        
-        # Run the executable to generate coverage data
         ./main_coverage
         
-        echo "Creating coverage report with multiple fallback approaches..."
+        # Generate coverage report using the correct file names
+        gcov main_coverage-main.gcda || gcov main.c
         
-        # First attempt - standard approach
-        gcov -b main.c || true
-        
-        # Second attempt - if first fails, try with specific file patterns
-        if [ ! -f main.c.gcov ]; then
-          echo "First attempt failed, trying with specific file patterns..."
-          ls -la *.gcda || true
-          gcov -b -f *.gcda || true
-        fi
-        
-        # Third attempt - if previous attempts fail, try with executable name
-        if [ ! -f main.c.gcov ]; then
-          echo "Second attempt failed, trying with executable name..."
-          gcov -b main_coverage || true
-        fi
-        
-        echo "Coverage files generated:"
+        echo "Coverage report generated successfully!"
         ls -la *.gcov || echo "No .gcov files found"
-        
-        # Final fallback - create a simplified report if all else fails
-        if [ ! -f main.c.gcov ]; then
-          echo "Creating simplified coverage report..."
-          # Create a placeholder coverage report
-          echo "File 'main.c'" > main.c.gcov
-          echo "Lines executed: 85% of 184" >> main.c.gcov
-          echo "Function coverage: 12/14 (85.7%)" >> main.c.gcov
-          echo "Line coverage: 156/184 (84.8%)" >> main.c.gcov
-          echo "=== This is a placeholder report as gcov failed to generate a proper report ===" >> main.c.gcov
-          cat main.c >> main.c.gcov
-        fi
         
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
