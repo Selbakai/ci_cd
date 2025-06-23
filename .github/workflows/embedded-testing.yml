@@ -158,7 +158,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y splint cloc
-          - name: Lines of code analysis
+        
+    - name: Lines of code analysis
       run: |
         echo "Code metrics:"
         cloc . --exclude-dir=.git
