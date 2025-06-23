@@ -1,0 +1,330 @@
+        -:    0:Source:main.c
+        -:    0:Graph:main_coverage-main.gcno
+        -:    0:Data:main_coverage-main.gcda
+        -:    0:Runs:1
+        -:    1:#include "main.h"
+        -:    2:
+        -:    3:// Global system state
+        -:    4:static system_info_t g_system;
+        -:    5:static uint32_t g_system_start_time;
+        -:    6:
+        -:    7:// Initialize the system
+        1:    8:error_code_t init_system(void) {
+        1:    9:  printf("Initializing embedded system...\n");
+        -:   10:
+        -:   11:  // Initialize system info
+        1:   12:  strncpy(g_system.name, PROJECT_NAME, sizeof(g_system.name) - 1);
+        1:   13:  strncpy(g_system.version, PROJECT_VERSION, sizeof(g_system.version) - 1);
+        1:   14:  strncpy(g_system.author, AUTHOR, sizeof(g_system.author) - 1);
+        1:   15:  g_system.uptime = 0;
+        -:   16:
+        -:   17:  // Record start time
+        1:   18:  g_system_start_time = (uint32_t)time(NULL);
+        -:   19:
+        -:   20:  // Initialize subsystems
+        1:   21:  if (init_gpio() != SUCCESS) {
+    #####:   22:    printf("ERROR: GPIO initialization failed\n");
+    #####:   23:    return ERROR_GPIO;
+        -:   24:  }
+        -:   25:
+        1:   26:  if (init_sensors() != SUCCESS) {
+    #####:   27:    printf("ERROR: Sensor initialization failed\n");
+    #####:   28:    return ERROR_SENSOR;
+        -:   29:  }
+        -:   30:
+        1:   31:  printf("System initialization completed successfully!\n");
+        1:   32:  return SUCCESS;
+        -:   33:}
+        -:   34:
+        -:   35:// Initialize GPIO pins
+        1:   36:error_code_t init_gpio(void) {
+        1:   37:  printf("Initializing GPIO pins...\n");
+        -:   38:
+        -:   39:  // Initialize all GPIO pins to LOW
+       17:   40:  for (int i = 0; i < GPIO_PINS; i++) {
+       16:   41:    g_system.gpio_states[i] = GPIO_LOW;
+        -:   42:  }
+        -:   43:
+        -:   44:  // Simulate some initial pin states
+        1:   45:  g_system.gpio_states[0] = GPIO_HIGH; // Power LED
+        1:   46:  g_system.gpio_states[1] = GPIO_HIGH; // Status LED
+        -:   47:
+        1:   48:  printf("GPIO initialization completed\n");
+        1:   49:  return SUCCESS;
+        -:   50:}
+        -:   51:
+        -:   52:// Initialize sensors
+        1:   53:error_code_t init_sensors(void) {
+        1:   54:  printf("Initializing sensors...\n");
+        -:   55:
+        5:   56:  for (int i = 0; i < MAX_SENSORS; i++) {
+        4:   57:    g_system.sensors[i].id = i;
+        4:   58:    g_system.sensors[i].value = 0;
+        4:   59:    g_system.sensors[i].timestamp = 0;
+        4:   60:    g_system.sensors[i].status = 1; // Active
+        -:   61:  }
+        -:   62:
+        1:   63:  printf("Sensor initialization completed\n");
+        1:   64:  return SUCCESS;
+        -:   65:}
+        -:   66:
+        -:   67:// GPIO write function
+        4:   68:void gpio_write(uint8_t pin, gpio_state_t state) {
+        4:   69:  if (pin < GPIO_PINS) {
+        4:   70:    g_system.gpio_states[pin] = state;
+        4:   71:    printf("GPIO Pin %d set to %s\n", pin, state ? "HIGH" : "LOW");
+        -:   72:  }
+        4:   73:}
+        -:   74:
+        -:   75:// GPIO read function
+        2:   76:gpio_state_t gpio_read(uint8_t pin) {
+        2:   77:  if (pin < GPIO_PINS) {
+        2:   78:    return g_system.gpio_states[pin];
+        -:   79:  }
+    #####:   80:  return GPIO_LOW;
+        -:   81:}
+        -:   82:
+        -:   83:// Read sensor value (simulated)
+        8:   84:uint16_t read_sensor(uint8_t sensor_id) {
+        8:   85:  if (sensor_id >= MAX_SENSORS) {
+    #####:   86:    return 0;
+        -:   87:  }
+        -:   88:
+        -:   89:  // Simulate sensor readings
+        8:   90:  uint16_t value = 0;
+        8:   91:  switch (sensor_id) {
+        2:   92:  case 0:                         // Temperature sensor
+        2:   93:    value = 200 + (rand() % 100); // 20.0°C to 30.0°C
+        2:   94:    break;
+        2:   95:  case 1:                         // Humidity sensor
+        2:   96:    value = 400 + (rand() % 300); // 40% to 70%
+        2:   97:    break;
+        2:   98:  case 2:                          // Pressure sensor
+        2:   99:    value = 1000 + (rand() % 100); // 1000-1100 hPa
+        2:  100:    break;
+        2:  101:  case 3:                  // Light sensor
+        2:  102:    value = rand() % 1024; // 0-1023
+        2:  103:    break;
+        -:  104:  }
+        -:  105:
+        8:  106:  g_system.sensors[sensor_id].value = value;
+        8:  107:  g_system.sensors[sensor_id].timestamp = (uint32_t)time(NULL);
+        -:  108:
+        8:  109:  return value;
+        -:  110:}
+        -:  111:
+        -:  112:// Update all sensors
+        1:  113:void update_sensors(void) {
+        5:  114:  for (int i = 0; i < MAX_SENSORS; i++) {
+        4:  115:    read_sensor(i);
+        -:  116:  }
+        1:  117:}
+        -:  118:
+        -:  119:// Get system uptime
+        2:  120:uint32_t get_system_uptime(void) {
+        2:  121:  return (uint32_t)time(NULL) - g_system_start_time;
+        -:  122:}
+        -:  123:
+        -:  124:// Display project information
+        1:  125:void display_project_info(void) {
+        1:  126:  printf("\n=== %s ===\n", PROJECT_NAME);
+        1:  127:  printf("Version: %s\n", PROJECT_VERSION);
+        1:  128:  printf("Author: %s\n", AUTHOR);
+        1:  129:  printf("Build Date: %s\n", BUILD_DATE);
+        1:  130:  printf("Build Time: %s\n", BUILD_TIME);
+        1:  131:  printf("======================\n\n");
+        1:  132:}
+        -:  133:
+        -:  134:// Display build information
+        1:  135:void display_build_info(void) {
+        1:  136:  printf("=== Build Information ===\n");
+        1:  137:  printf("Compiler: %s\n", __VERSION__);
+        1:  138:  printf("Architecture: ");
+        -:  139:#ifdef __x86_64__
+        1:  140:  printf("x86_64\n");
+        -:  141:#elif defined(__arm__)
+        -:  142:  printf("ARM\n");
+        -:  143:#elif defined(__aarch64__)
+        -:  144:  printf("ARM64\n");
+        -:  145:#else
+        -:  146:  printf("Unknown\n");
+        -:  147:#endif
+        1:  148:  printf("Standard: C%ld\n", __STDC_VERSION__);
+        1:  149:  printf("========================\n\n");
+        1:  150:}
+        -:  151:
+        -:  152:// Display system status
+        2:  153:void display_system_status(void) {
+        2:  154:  printf("=== System Status ===\n");
+        2:  155:  printf("System: %s v%s\n", g_system.name, g_system.version);
+        2:  156:  printf("Uptime: %u seconds\n", get_system_uptime());
+        -:  157:
+        2:  158:  printf("\nGPIO Status:\n");
+       10:  159:  for (int i = 0; i < 4; i++) { // Show first 4 pins
+        8:  160:    printf("  Pin %d: %s\n", i, g_system.gpio_states[i] ? "HIGH" : "LOW");
+        -:  161:  }
+        -:  162:
+        2:  163:  printf("\nSensor Readings:\n");
+        2:  164:  const char *sensor_names[] = {"Temperature", "Humidity", "Pressure", "Light"};
+        2:  165:  const char *units[] = {"°C", "%", "hPa", "lux"};
+        2:  166:  const float divisors[] = {10.0, 10.0, 1.0, 1.0};
+        -:  167:
+       10:  168:  for (int i = 0; i < MAX_SENSORS; i++) {
+        8:  169:    float value = g_system.sensors[i].value / divisors[i];
+        8:  170:    printf("  %s: %.1f %s\n", sensor_names[i], value, units[i]);
+        -:  171:  }
+        2:  172:  printf("====================\n\n");
+        2:  173:}
+        -:  174:
+        -:  175:// Simulate embedded operations
+        1:  176:void simulate_embedded_operations(void) {
+        1:  177:  printf("Starting embedded operations simulation...\n\n");
+        -:  178:
+        -:  179:  // Simulate some GPIO operations
+        1:  180:  gpio_write(2, GPIO_HIGH); // Turn on LED
+        1:  181:  gpio_write(3, GPIO_LOW);  // Turn off relay
+        -:  182:
+        -:  183:  // Update sensor readings
+        1:  184:  update_sensors();
+        -:  185:
+        -:  186:  // Display current status
+        1:  187:  display_system_status();
+        -:  188:
+        1:  189:  printf("Embedded operations completed!\n");
+        1:  190:}
+        -:  191:
+        -:  192:// Test functions for CI/CD
+        1:  193:int test_gpio_functionality(void) {
+        1:  194:  printf("Testing GPIO functionality...\n");
+        -:  195:
+        -:  196:  // Test GPIO write/read
+        1:  197:  gpio_write(5, GPIO_HIGH);
+        1:  198:  if (gpio_read(5) != GPIO_HIGH) {
+    #####:  199:    printf("GPIO test FAILED\n");
+    #####:  200:    return -1;
+        -:  201:  }
+        -:  202:
+        1:  203:  gpio_write(5, GPIO_LOW);
+        1:  204:  if (gpio_read(5) != GPIO_LOW) {
+    #####:  205:    printf("GPIO test FAILED\n");
+    #####:  206:    return -1;
+        -:  207:  }
+        -:  208:
+        1:  209:  printf("GPIO test PASSED\n");
+        1:  210:  return 0;
+        -:  211:}
+        -:  212:
+        1:  213:int test_sensor_operations(void) {
+        1:  214:  printf("Testing sensor operations...\n");
+        -:  215:
+        -:  216:  // Test sensor readings
+        5:  217:  for (int i = 0; i < MAX_SENSORS; i++) {
+        4:  218:    uint16_t value = read_sensor(i);
+       4*:  219:    if (value == 0 && i != 3) { // Light sensor can be 0
+    #####:  220:      printf("Sensor %d test FAILED\n", i);
+    #####:  221:      return -1;
+        -:  222:    }
+        -:  223:  }
+        -:  224:
+        1:  225:  printf("Sensor test PASSED\n");
+        1:  226:  return 0;
+        -:  227:}
+        -:  228:
+        1:  229:int test_memory_management(void) {
+        1:  230:  printf("Testing memory management...\n");
+        -:  231:
+        -:  232:  // Simple memory allocation test
+        1:  233:  char *buffer = malloc(BUFFER_SIZE);
+        1:  234:  if (buffer == NULL) {
+    #####:  235:    printf("Memory allocation test FAILED\n");
+    #####:  236:    return -1;
+        -:  237:  }
+        -:  238:
+        -:  239:  // Write and verify data
+        1:  240:  memset(buffer, 0xAA, BUFFER_SIZE);
+      257:  241:  for (int i = 0; i < BUFFER_SIZE; i++) {
+      256:  242:    if (buffer[i] != (char)0xAA) {
+    #####:  243:      printf("Memory test FAILED\n");
+    #####:  244:      free(buffer);
+    #####:  245:      return -1;
+        -:  246:    }
+        -:  247:  }
+        -:  248:
+        1:  249:  free(buffer);
+        1:  250:  printf("Memory test PASSED\n");
+        1:  251:  return 0;
+        -:  252:}
+        -:  253:
+        1:  254:int run_unit_tests(void) {
+        1:  255:  printf("\n=== Running Unit Tests ===\n");
+        -:  256:
+        1:  257:  int tests_passed = 0;
+        1:  258:  int total_tests = 3;
+        -:  259:
+        1:  260:  if (test_gpio_functionality() == 0)
+        1:  261:    tests_passed++;
+        1:  262:  if (test_sensor_operations() == 0)
+        1:  263:    tests_passed++;
+        1:  264:  if (test_memory_management() == 0)
+        1:  265:    tests_passed++;
+        -:  266:
+        1:  267:  printf("\nTest Results: %d/%d tests passed\n", tests_passed, total_tests);
+        1:  268:  printf("========================\n\n");
+        -:  269:
+       1*:  270:  return (tests_passed == total_tests) ? 0 : -1;
+        -:  271:}
+        -:  272:
+        -:  273:// Cleanup system resources
+        1:  274:void cleanup_system(void) {
+        1:  275:  printf("Cleaning up system resources...\n");
+        -:  276:
+        -:  277:  // Turn off all GPIO pins
+       17:  278:  for (int i = 0; i < GPIO_PINS; i++) {
+       16:  279:    g_system.gpio_states[i] = GPIO_LOW;
+        -:  280:  }
+        -:  281:
+        1:  282:  printf("System cleanup completed\n");
+        1:  283:}
+        -:  284:
+        -:  285:// Main function
+        1:  286:int main(void) {
+        1:  287:  printf("========================================\n");
+        1:  288:  printf("    CI/CD Embedded Systems Project\n");
+        1:  289:  printf("========================================\n");
+        -:  290:
+        -:  291:  // Display project information
+        1:  292:  display_project_info();
+        1:  293:  display_build_info();
+        -:  294:
+        -:  295:  // Initialize random seed for sensor simulation
+        1:  296:  srand((unsigned int)time(NULL));
+        -:  297:
+        -:  298:  // Initialize system
+        1:  299:  if (init_system() != SUCCESS) {
+    #####:  300:    printf("System initialization failed!\n");
+    #####:  301:    return EXIT_FAILURE;
+        -:  302:  }
+        -:  303:
+        -:  304:  // Run unit tests
+        1:  305:  if (run_unit_tests() != 0) {
+    #####:  306:    printf("Unit tests failed!\n");
+    #####:  307:    cleanup_system();
+    #####:  308:    return EXIT_FAILURE;
+        -:  309:  }
+        -:  310:
+        -:  311:  // Simulate embedded operations
+        1:  312:  simulate_embedded_operations();
+        -:  313:
+        -:  314:  // Final status
+        1:  315:  printf("=== Final System State ===\n");
+        1:  316:  display_system_status();
+        -:  317:
+        -:  318:  // Cleanup
+        1:  319:  cleanup_system();
+        -:  320:
+        1:  321:  printf("========================================\n");
+        1:  322:  printf("    Project executed successfully!\n");
+        1:  323:  printf("========================================\n");
+        -:  324:
+        1:  325:  return EXIT_SUCCESS;
+        -:  326:}
