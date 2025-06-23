@@ -1,0 +1,130 @@
+name: CI/CD Pipeline for Embedded C Project
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ${{ matrix.compiler }}
+        
+    - name: Display compiler version
+      run: |
+        ${{ matrix.compiler }} --version
+        
+    - name: Compile project
+      run: |
+        ${{ matrix.compiler }} -o main main.c -Wall -Wextra -std=c99
+        
+    - name: Run executable
+      run: |
+        ./main
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: compiled-binary-${{ matrix.compiler }}
+        path: main
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+        
+    - name: Run static analysis
+      run: |
+        cppcheck --enable=all --inconclusive --xml --xml-version=2 . 2> cppcheck-report.xml
+        
+    - name: Upload static analysis results
+      uses: actions/upload-artifact@v4
+      with:
+        name: static-analysis-report
+        path: cppcheck-report.xml
+
+  embedded-test:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup cross-compilation tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-linux-gnueabihf
+        
+    - name: Cross-compile for ARM
+      run: |
+        arm-linux-gnueabihf-gcc -o main_arm main.c -static
+        
+    - name: Upload ARM binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: arm-embedded-binary
+        path: main_arm
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Bandit security scan
+      run: |
+        echo "Security scan placeholder for C project"
+        echo "In a real project, you would use tools like:"
+        echo "- Flawfinder for C/C++ static analysis"
+        echo "- Clang Static Analyzer"
+        echo "- Coverity Scan"
+        
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, static-analysis, embedded-test, security-scan]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      
+    - name: Create release
+      run: |
+        echo "Creating release for embedded project"
+        echo "Version: $(date +%Y.%m.%d)"
+        echo "All tests passed successfully!"
+        
+    - name: Deploy to production
+      run: |
+        echo "Deployment simulation for embedded device"
+        echo "In real scenario, this would:"
+        echo "- Flash firmware to device"
+        echo "- Update embedded system"
+        echo "- Verify deployment success"

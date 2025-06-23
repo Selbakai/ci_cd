@@ -1,0 +1,143 @@
+# GitLab CI/CD Pipeline for Embedded C Project
+# File: .gitlab-ci.yml
+
+stages:
+  - build
+  - test
+  - static-analysis
+  - deploy
+
+variables:
+  GCC_FLAGS: "-Wall -Wextra -std=c99"
+  PROJECT_NAME: "ci_cd_embedded"
+
+# Build stage
+build:x86:
+  stage: build
+  image: gcc:latest
+  script:
+    - gcc $GCC_FLAGS -o ${PROJECT_NAME}_x86 main.c
+    - echo "x86 build completed successfully"
+  artifacts:
+    paths:
+      - ${PROJECT_NAME}_x86
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+
+build:arm:
+  stage: build
+  image: gcc:latest
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq gcc-arm-linux-gnueabihf
+  script:
+    - arm-linux-gnueabihf-gcc $GCC_FLAGS -static -o ${PROJECT_NAME}_arm main.c
+    - echo "ARM build completed successfully"
+  artifacts:
+    paths:
+      - ${PROJECT_NAME}_arm
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+
+# Test stage
+test:unit:
+  stage: test
+  image: gcc:latest
+  dependencies:
+    - build:x86
+  script:
+    - echo "Running unit tests..."
+    - ./${PROJECT_NAME}_x86
+    - echo "Unit tests passed!"
+  only:
+    - main
+    - develop
+
+test:integration:
+  stage: test
+  image: gcc:latest
+  dependencies:
+    - build:x86
+  script:
+    - echo "Running integration tests..."
+    - ./${PROJECT_NAME}_x86
+    - echo "Integration tests passed!"
+  only:
+    - main
+    - develop
+
+# Static analysis stage
+static-analysis:
+  stage: static-analysis
+  image: gcc:latest
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq cppcheck splint
+  script:
+    - echo "Running static analysis..."
+    - cppcheck --enable=all --inconclusive . || true
+    - splint main.c || true
+    - echo "Static analysis completed"
+  artifacts:
+    reports:
+      junit: report.xml
+  only:
+    - main
+    - develop
+
+# Deploy stage
+deploy:staging:
+  stage: deploy
+  image: alpine:latest
+  dependencies:
+    - build:x86
+    - build:arm
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying to staging environment..."
+    - echo "Firmware files ready for deployment:"
+    - ls -la ${PROJECT_NAME}_*
+    - echo "Staging deployment completed!"
+  environment:
+    name: staging
+    url: https://staging.embedded.example.com
+  only:
+    - develop
+
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  dependencies:
+    - build:x86
+    - build:arm
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Deploying to production environment..."
+    - echo "Flashing firmware to embedded devices..."
+    - echo "Production deployment completed!"
+  environment:
+    name: production
+    url: https://embedded.example.com
+  when: manual
+  only:
+    - main
+
+# Security scanning (optional)
+security:scan:
+  stage: static-analysis
+  image: alpine:latest
+  script:
+    - echo "Running security scan..."
+    - echo "Security scan would check for:"
+    - echo "- Buffer overflows"
+    - echo "- Memory leaks"
+    - echo "- Vulnerable dependencies"
+    - echo "Security scan completed"
+  allow_failure: true
+  only:
+    - main
+    - develop

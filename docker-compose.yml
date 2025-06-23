@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  embedded-dev:
+    build: .
+    container_name: ci_cd_embedded
+    volumes:
+      - .:/workspace
+      - /workspace/.git
+    working_dir: /workspace
+    environment:
+      - TERM=xterm-256color
+    command: tail -f /dev/null
+    
+  embedded-build:
+    build: .
+    container_name: ci_cd_build
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: |
+      sh -c "
+        echo 'Building embedded project...'
+        gcc -o main main.c -Wall -Wextra -std=c99
+        echo 'Build completed!'
+        ./main
+      "
+      
+  embedded-test:
+    build: .
+    container_name: ci_cd_test
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    environment:
+      - CI=true
+    command: |
+      sh -c "
+        echo 'Running tests...'
+        gcc -g -o main_test main.c -Wall -Wextra -std=c99
+        echo 'Running unit tests...'
+        ./main_test
+        echo 'Tests completed!'
+      "
+
+networks:
+  default:
+    name: embedded_network
